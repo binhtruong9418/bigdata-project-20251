@@ -12,7 +12,7 @@ services:
       - es-net
 
   kafka1:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.4.0
     container_name: kafka1
     depends_on:
       - zookeeper
@@ -29,7 +29,7 @@ services:
       - es-net
 
   kafka2:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.4.0
     container_name: kafka2
     depends_on:
       - zookeeper
@@ -46,7 +46,7 @@ services:
       - es-net
 
   kafka3:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.4.0
     container_name: kafka3
     depends_on:
       - zookeeper

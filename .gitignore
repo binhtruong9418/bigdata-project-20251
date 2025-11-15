@@ -1,0 +1,144 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+.installed.cfg
+*.egg-info/
+MANIFEST
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+.virtualenv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+kafka_hdfs_consumer.log
+spark/logs/
+*.out
+
+# Hadoop (only ignore runtime data, keep config/binaries)
+hadoop/logs/
+hadoop/tmp/
+hadoop-data/
+hdfs/
+
+# Spark
+spark-warehouse/
+metastore_db/
+derby.log
+spark/metastore_db/
+spark/spark-warehouse/
+
+# Kafka
+kafka/data/
+kafka/logs/
+zookeeper/
+
+# Cassandra (only ignore runtime data, keep config)
+cassandra/data/
+cassandra/logs/
+cassandra/commitlog/
+cassandra/saved_caches/
+
+# Data files (exclude large datasets)
+*.csv
+*.json
+*.parquet
+*.avro
+data/
+*.dat
+*.bin
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+.cache/
+
+# OS specific
+Thumbs.db
+.DS_Store
+.Spotlight-V100
+.Trashes
+
+# Claude Code
+.claude/
+
+# Compiled class files
+*.class
+
+# Package files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Documentation (optional - uncomment if you want to track docs)
+# *.md
+# !README.md
+
+# Test coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/

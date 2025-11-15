@@ -50,16 +50,12 @@ def create_hdfs_path(hdfs_client, date_path):
 def save_batch_to_hdfs(hdfs_client, batch_messages, base_path):
     try:
         current_time = datetime.now()
-        date_path = os.path.join(
-            base_path,
-            current_time.strftime('%Y'),
-            current_time.strftime('%m'),
-            current_time.strftime('%d')
-        )
+        # Use forward slashes for HDFS paths (not os.path.join which uses backslashes on Windows)
+        date_path = f"{base_path}/{current_time.strftime('%Y')}/{current_time.strftime('%m')}/{current_time.strftime('%d')}"
         create_hdfs_path(hdfs_client, date_path)
 
         filename = f"{current_time.strftime('%H_%M_%S_%f')}_batch.json"
-        full_path = os.path.join(date_path, filename)
+        full_path = f"{date_path}/{filename}"
 
         with hdfs_client.write(full_path, encoding='utf-8') as writer:
             json.dump(batch_messages, writer)
@@ -77,6 +73,9 @@ def kafka_hdfs_consumer():
         fetch_max_wait_ms=1,
         enable_auto_commit=False,
         max_poll_records=BATCH_SIZE,
+        api_version=(2, 8, 1),  # Match Kafka broker version
+        request_timeout_ms=30000,
+        session_timeout_ms=10000,
         value_deserializer=lambda x: json.loads(x.decode('utf-8'))
     )
 

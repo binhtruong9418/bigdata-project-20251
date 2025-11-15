@@ -1,21 +1,26 @@
+import os
+import sys
+
+# Set HADOOP_HOME for Windows
+if sys.platform == 'win32':
+    hadoop_home = os.path.join(os.getcwd(), 'hadoop')
+    os.environ['HADOOP_HOME'] = hadoop_home
+    os.environ['PATH'] = os.path.join(hadoop_home, 'bin') + ';' + os.environ.get('PATH', '')
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, window, sum, avg
 from pyspark.sql.types import (
-    StructType, StructField, StringType, DoubleType, IntegerType, 
+    StructType, StructField, StringType, DoubleType, IntegerType,
     BooleanType, LongType, TimestampType
 )
 
 def create_spark_session():
     return (SparkSession.builder
-            .appName("ZillowKafkaElasticsearchStreaming")
+            .appName("ZillowKafkaStreaming")
             .master("local[*]")
-            .config("spark.jars.packages", 
-                    "org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.2,"
-                    "org.elasticsearch:elasticsearch-spark-30_2.12:7.17.16")
+            .config("spark.jars.packages",
+                    "org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.0")
             .config("spark.sql.streaming.checkpointLocation", "/tmp/checkpoint")
-            .config("es.nodes", "localhost:9200")
-            .config("es.nodes.wan.only", "true")
-            .config("es.index.auto.create", "true")
             .getOrCreate())
 
 def define_input_schema():
@@ -111,26 +116,19 @@ def process_streaming_data(streaming_df):
     # return city_property_analysis
 
 def write_streaming_output(windowed_sales):
-    # Xuất ra Elasticsearch
-    elasticsearch_query = (windowed_sales
-        .writeStream
-        .outputMode("append")
-        .format("org.elasticsearch.spark.sql")
-        .option("es.resource", "example_index")
-        .option("checkpointLocation", "/tmp/es_checkpoint")
-        .start()
-    )
-    print("Writing to Elasticsearch...", elasticsearch_query)
-    # Xuất ra console (tuỳ chọn, có thể bỏ qua)
+    # Note: Elasticsearch connector for Spark 4.0 is not yet available
+    # Using console output instead
     console_query = (windowed_sales
         .writeStream
         .outputMode("complete")
         .format("console")
         .option("truncate", "false")
+        .option("checkpointLocation", "/tmp/console_checkpoint")
         .start()
     )
-    
-    return [elasticsearch_query, console_query]
+    print("Writing streaming data to console...")
+
+    return [console_query]
 
 def main():
     # Cấu hình Kafka brokers

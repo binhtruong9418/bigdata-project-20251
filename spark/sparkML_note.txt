@@ -1,0 +1,46 @@
+SPARK ML - PYTHON 3.11 COMPATIBILITY
+====================================
+
+✅ FULLY COMPATIBLE WITH PYTHON 3.11
+
+sparkML.py reads real data from Cassandra and trains a Random Forest model
+to predict house prices based on features like location, size, and amenities.
+
+WHAT WORKS WITH PYTHON 3.11:
+- ✅ Kafka Producer generating real-time data
+- ✅ Batch Consumer saving to HDFS
+- ✅ Spark Streaming with real-time aggregations
+- ✅ Batch processing from HDFS to Cassandra
+- ✅ Cassandra integration (cassandra-driver fully supported)
+- ✅ ML model training with PySpark MLlib
+- ✅ Random Forest Regressor for price prediction
+- ✅ Feature engineering and data preprocessing
+
+WORKFLOW:
+1. Start pipeline: .\start.bat (or ./start.sh)
+2. Wait for data collection (10-15 minutes)
+3. Load to Cassandra: python spark/batch_processing.py
+4. Verify data: python check_cassandra_data.py
+5. Train ML model: python spark/sparkML.py
+
+ML MODEL FEATURES:
+- Algorithm: Random Forest Regressor
+- Target: House price prediction
+- Features: city, hometype, bedrooms, bathrooms, living area, lot size, etc.
+- Training/Test Split: 80/20
+- Evaluation Metrics: RMSE, R², MAE
+
+CASSANDRA INTEGRATION:
+- Keyspace: finaldata1
+- Table: data2
+- Connection: localhost:9042
+- Data source: Real streaming data from Kafka pipeline
+
+TESTED ENVIRONMENT:
+- Python 3.11.x
+- PySpark 4.0.1
+- cassandra-driver (fully compatible)
+- Windows 10/11, Linux, MacOS
+- All components working correctly
+
+For questions or issues, check README.md or QUICKSTART.md
