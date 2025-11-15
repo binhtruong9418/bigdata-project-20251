@@ -9,8 +9,8 @@ Hệ thống xử lý dữ liệu bất động sản real-time sử dụng côn
 1. **Data Ingestion**: Tạo dữ liệu giả lập nhà đất California và gửi vào Kafka
 2. **Stream Processing**: Xử lý real-time với Spark Structured Streaming
 3. **Batch Processing**: Lưu trữ batch data vào HDFS và Cassandra
-4. **Machine Learning**: Train model dự đoán giá nhà với Random Forest
-5. **Analytics**: Aggregation theo thành phố, thời gian
+4. **Machine Learning**: Train model và dự đoán giá nhà với Random Forest
+5. **Analytics**: Aggregation theo thành phố, home type, và thống kê chi tiết
 
 ---
 
@@ -27,7 +27,7 @@ Kafka Cluster (3 brokers)
             ↓
         Batch Processing (PySpark)
             ↓
-        Cassandra → ML Training (sparkML.py)
+        Cassandra → ML Prediction (predict_prices.py)
 ```
 
 ### Các thành phần:
@@ -39,7 +39,7 @@ Kafka Cluster (3 brokers)
 - **HDFS**: Lưu trữ phân tán dữ liệu batch
 - **Batch Processing**: Load data từ HDFS vào Cassandra (tự động setup database)
 - **Cassandra**: NoSQL database cho ML pipeline
-- **ML Training**: Huấn luyện model dự đoán giá nhà (Random Forest)
+- **ML Prediction**: Train model và dự đoán giá cho tất cả properties (Random Forest)
 
 ---
 
@@ -142,7 +142,7 @@ docker-compose ps
 4. Run Streaming Consumer (real-time analytics)
 5. Wait 10-15 minutes (collect data)
 6. Run Batch Processing (HDFS → Cassandra, auto setup database)
-7. Run ML Training (train model từ Cassandra)
+7. Run ML Prediction (train model và predict ALL data từ Cassandra)
 ```
 
 ### Cách 1: Chạy tự động (Khuyến nghị)
@@ -180,29 +180,31 @@ python kafka/consumer_batch.py
 python kafka/consumer_structured_stream.py
 ```
 
-### Machine Learning Workflow:
+---
 
-#### Bước 1: Collect data (đợi 10-15 phút)
+## 🤖 Machine Learning Workflow
+
+### Bước 1: Collect data (đợi 10-15 phút)
 ```bash
 # Producer, Batch Consumer, và Spark Streaming đang chạy
 # Đợi để data được collect vào HDFS
 # Kiểm tra: http://localhost:9870 → Utilities → Browse the file system → /data/kafka_messages
 ```
 
-#### Bước 2: Load data từ HDFS vào Cassandra
+### Bước 2: Load data từ HDFS vào Cassandra
 ```bash
 python spark/batch_processing.py
 ```
 
-**Tính năng mới**:
+**Tính năng:**
 - ✅ Tự động tạo Cassandra keyspace `finaldata1`
 - ✅ Tự động tạo table `data2` với schema phù hợp
 - ✅ Không cần chạy setup riêng
 - ✅ Hiển thị progress bar khi xử lý nhiều files
-- ✅ Error handling tốt hơn, retry logic
+- ✅ Error handling tốt, retry logic
 - ✅ Summary report chi tiết (success/failed counts)
 
-Output mẫu:
+**Output mẫu:**
 ```
 ============================================================
 Zillow Batch Processing - HDFS to Cassandra
@@ -235,49 +237,86 @@ Failed: 4
 Data written to: Cassandra keyspace 'finaldata1', table 'data2'
 ```
 
-#### Bước 3: Kiểm tra data trong Cassandra (Optional)
+### Bước 3: Train Model & Predict ALL Data
 ```bash
-python check_cassandra_data.py
+python spark/predict_prices.py
 ```
 
-Script sẽ:
-- Kết nối tới Cassandra
-- Đếm số lượng records trong table `finaldata1.data2`
-- Hiển thị sample data
-- Đưa ra khuyến nghị có nên train ML model hay chưa
+**Tính năng mới:**
+- ✅ Reads ALL data from Cassandra automatically
+- ✅ Trains Random Forest model (20 trees, depth 10)
+- ✅ Predicts prices for ALL properties
+- ✅ Shows sample predictions (first 20)
+- ✅ Statistics by city and home type
+- ✅ **Spark Web UI available at http://localhost:4040**
+- ✅ Keeps session alive - press ENTER when done exploring UI
+- ✅ No temp file cleanup errors on Windows
 
-#### Bước 4: Train ML model
-```bash
-python spark/sparkML.py
+**Output mẫu:**
+```
+============================================================
+Zillow Price Prediction - Predict All Data
+============================================================
+
+[1/6] Initializing Spark session...
+[OK] Spark session created
+[INFO] Spark Web UI available at: http://localhost:4040
+
+[2/6] Reading ALL data from Cassandra...
+[OK] Loaded 650 properties
+
+[3/6] Preprocessing data...
+[OK] 650 valid properties
+
+[4/6] Building ML Pipeline...
+
+[5/6] Training model (this takes 2-3 minutes)...
+[OK] Training completed!
+
+[6/6] Making predictions on all properties...
+[OK] Predictions completed!
+
+============================================================
+SAMPLE PREDICTIONS (First 20)
+============================================================
++---------+-------------+-------------+------------+--------------------+
+|zpid     |city         |hometype     |actual_price|predicted_price     |
++---------+-------------+-------------+------------+--------------------+
+|255566386|Burbank      |MANUFACTURED |1787176     |3199940.03          |
+|376355892|Beverly Hills|MULTI_FAMILY |8260909     |11710404.13         |
++---------+-------------+-------------+------------+--------------------+
+
+============================================================
+OVERALL STATISTICS
+============================================================
+
+Total properties: 650
+Avg actual price: $7,980,586.12
+Avg predicted price: $8,251,029.00
+Min predicted: $903,183.28
+Max predicted: $67,311,818.57
+
+============================================================
+PREDICTIONS BY CITY
+============================================================
++--------------+-----+--------------------+
+|city          |count|avg_predicted       |
++--------------+-----+--------------------+
+|Sherman Oaks  |72   |11889660.33         |
+|Beverly Hills |51   |6185828.02          |
++--------------+-----+--------------------+
+
+Spark Web UI: http://localhost:4040
+
+Press ENTER when done exploring the UI...
 ```
 
-Model sử dụng Random Forest để dự đoán giá nhà dựa trên:
-- Số phòng ngủ (bedrooms)
-- Số phòng tắm (bathrooms)
-- Diện tích (livingarea)
-- Loại nhà (hometype)
-- Thành phố (city)
-
-### Dừng hệ thống:
-
-#### Windows:
-```bash
-.\stop.bat
-```
-
-#### Linux/Mac:
-```bash
-chmod +x stop.sh
-./stop.sh
-```
-
-Hoặc thủ công:
-```bash
-# Nhấn Ctrl+C ở mỗi terminal để dừng các consumer/producer
-
-# Dừng Docker services
-docker-compose down
-```
+**Model features:**
+- Algorithm: Random Forest Regressor
+- Trees: 20
+- Max Depth: 10
+- Features: city, hometype, bedrooms, bathrooms, livingarea, lotareavalue, etc.
+- Target: price prediction
 
 ---
 
@@ -304,18 +343,6 @@ Sent data: {'timestamp': 1763174687952, 'zpid': 261109533, 'city': 'Glendale', '
 +----------------------------------------------+--------------+-------------+-----------------+
 ```
 
-### Batch Processing Output:
-```
-Sample data (first file):
-+---------+--------------+-------------+--------+------------+---------+--------+----------+----------+-----------------+--------------------+-------------------------+
-|zpid     |city          |hometype     |price   |lotareavalue|bathrooms|bedrooms|livingarea|isfeatured|isshowcaselisting|newconstructiontype |listingsubtype_is_newhome|
-+---------+--------------+-------------+--------+------------+---------+--------+----------+----------+-----------------+--------------------+-------------------------+
-|169024753|Santa Monica  |MULTI_FAMILY |795129  |5.4735      |2        |11      |7142      |true      |true             |BUILDER_SPEC        |true                     |
-+---------+--------------+-------------+--------+------------+---------+--------+----------+----------+-----------------+--------------------+-------------------------+
-
-[Progress] Processed 100/2984 files...
-```
-
 ---
 
 ## 📁 Cấu trúc thư mục
@@ -328,8 +355,8 @@ bigdata-project-20251/
 │   └── consumer_structured_stream.py # Spark streaming consumer
 ├── spark/
 │   ├── batch_processing.py          # HDFS → Cassandra (optimized, auto setup)
-│   ├── sparkML.py                   # ML model training
-│   └── sparkML_note.txt             # Notes
+│   ├── predict_prices.py            # ML prediction for ALL data (with Spark UI)
+│   └── README.md                    # Spark scripts documentation
 ├── hadoop/
 │   └── bin/                         # Hadoop binaries (Windows only)
 ├── check_cassandra_data.py          # Verify Cassandra data
@@ -340,6 +367,7 @@ bigdata-project-20251/
 ├── start.sh                         # Linux/Mac startup script
 ├── stop.bat                         # Windows stop script
 ├── stop.sh                          # Linux/Mac stop script
+├── CLEANUP.md                       # Complete cleanup guide
 └── README.md                        # This file
 ```
 
@@ -353,6 +381,7 @@ Sau khi khởi động Docker services, có thể truy cập:
 - **Spark Worker**: http://localhost:8081
 - **HDFS NameNode**: http://localhost:9870
   - Browse files: Utilities → Browse the file system → /data/kafka_messages
+- **Spark Application UI**: http://localhost:4040 (khi chạy predict_prices.py)
 
 ---
 
@@ -451,8 +480,10 @@ docker logs namenode
 docker-compose restart namenode datanode
 ```
 
-### 7. Kafka connection timeout
-Đợi thêm 30-60 giây để Kafka khởi động hoàn toàn.
+### 7. Spark temp file cleanup errors (Windows)
+**Nguyên nhân**: Windows file locking
+
+**Giải pháp**: Đã fix - script sử dụng local `spark-temp/` directory và graceful shutdown. Errors (nếu có) là cosmetic và không ảnh hưởng kết quả.
 
 ---
 
@@ -465,10 +496,42 @@ docker-compose restart namenode datanode
 4. **Progress Tracking**: Hiển thị progress mỗi 100 files
 5. **Summary Report**: Tổng kết success/failed counts
 
+### ML Prediction Script (`predict_prices.py`):
+1. **No Model Save/Load**: Train và predict trong cùng session - tránh lỗi Windows
+2. **Spark UI Integration**: Web UI available at http://localhost:4040
+3. **Keep Session Alive**: Press ENTER to keep UI accessible
+4. **Complete Statistics**: Breakdowns by city, home type, overall stats
+5. **Windows Optimized**: Local temp dir, clean shutdown, no errors
+
 ### Version Compatibility:
 - Downgrade từ PySpark 4.0.1 → 3.5.0 để tương thích với Cassandra connector
 - Sử dụng Scala 2.12 connector thay vì 2.13
 - Python 3.11 cho full cassandra-driver support
+
+---
+
+## 🗑️ Cleanup Guide
+
+Xem file `CLEANUP.md` để biết cách xóa hoàn toàn project và tất cả data.
+
+**Quick cleanup:**
+```bash
+# Stop all services
+docker-compose down -v
+
+# Delete external storage (OUTSIDE project - IMPORTANT!)
+cd D:\Workspace\
+rmdir /s /q storage
+
+# Delete project
+rmdir /s /q bigdata-project-20251
+
+# Clean Spark temp
+cd C:\Users\binht\AppData\Local\Temp\
+for /d %i in (spark-*) do rmdir /s /q "%i"
+```
+
+**Total space freed**: ~11-22 GB
 
 ---
 
@@ -497,3 +560,4 @@ Nếu có vấn đề, vui lòng tạo issue trong repository hoặc liên hệ 
 - [Cassandra Documentation](https://cassandra.apache.org/doc/)
 - [HDFS Architecture](https://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-hdfs/HdfsDesign.html)
 - [Spark-Cassandra Connector](https://github.com/apache/cassandra-spark-connector)
+- [Random Forest Algorithm](https://spark.apache.org/docs/latest/ml-classification-regression.html#random-forest-regression)

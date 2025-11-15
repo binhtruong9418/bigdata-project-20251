@@ -70,6 +70,10 @@ metastore_db/
 derby.log
 spark/metastore_db/
 spark/spark-warehouse/
+spark-temp/
+
+# ML Models
+models/
 
 # Kafka
 kafka/data/
